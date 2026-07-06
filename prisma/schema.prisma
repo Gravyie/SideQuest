@@ -1,0 +1,89 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id              String    @id // Clerk ID
+  username        String?   @unique
+  email           String    @unique
+  name            String
+  community       String    
+  motivation      String    
+  skills          String[]  @default([])
+  proofOfWorkUrl  String    
+  approved        Boolean   @default(false)
+  trustScore      Int       @default(80)
+  createdAt       DateTime  @default(now())
+  
+  draftEntries    DraftEntry[]
+  questMembers    QuestMember[]
+  reviewsGiven    Review[]  @relation("Reviewer")
+  reviewsReceived Review[]  @relation("Reviewee")
+}
+
+model Waitlist {
+  id              String   @id @default(uuid())
+  email           String   @unique
+  name            String
+  community       String
+  proofOfWorkUrl  String
+  motivation      String
+  status          String   @default("PENDING") 
+  createdAt       DateTime @default(now())
+}
+
+model DraftEntry {
+  id              String   @id @default(uuid())
+  userId          String
+  weekendId       String   
+  availability    String[] @default([])
+  depositPaid     Boolean  @default(false)
+  stripeSessionId String?  @unique
+  createdAt       DateTime @default(now())
+  matched         Boolean  @default(false) 
+  
+  user            User     @relation(fields: [userId], references: [id])
+}
+
+model Quest {
+  id            String   @id @default(uuid())
+  weekendId     String
+  community     String   
+  shippedUrl    String?
+  status        String   @default("ACTIVE") 
+  createdAt     DateTime @default(now())
+  
+  members       QuestMember[]
+  reviews       Review[]
+}
+
+model QuestMember {
+  id        String   @id @default(uuid())
+  questId   String
+  userId    String
+  role      String?  
+  
+  quest     Quest    @relation(fields: [questId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([questId, userId])
+}
+
+model Review {
+  id              String   @id @default(uuid())
+  questId         String
+  reviewerId      String
+  revieweeId      String
+  wouldWorkAgain  Boolean
+  createdAt       DateTime @default(now())
+
+  quest           Quest    @relation(fields: [questId], references: [id], onDelete: Cascade)
+  reviewer        User     @relation("Reviewer", fields: [reviewerId], references: [id], onDelete: Cascade)
+  reviewee        User     @relation("Reviewee", fields: [revieweeId], references: [id], onDelete: Cascade)
+
+  @@unique([questId, reviewerId, revieweeId])
+}
