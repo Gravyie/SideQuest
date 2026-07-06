@@ -31,8 +31,7 @@ export async function submitProject(formData: FormData) {
     // Automatically Refund the $10 deposit for everyone on the team who paid
     const Stripe = (await import("stripe")).default;
     if (process.env.STRIPE_SECRET_KEY) {
-      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2024-12-18.acacia" });
-      
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
       for (const member of updatedQuest.members) {
         const draft = member.user.draftEntries[0];
         if (draft?.depositPaid && draft?.stripeSessionId) {
@@ -89,7 +88,7 @@ export async function optIn(formData: FormData) {
   // We don't create the DraftEntry yet. We redirect to Stripe.
   try {
     const Stripe = (await import("stripe")).default;
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", { apiVersion: "2024-12-18.acacia" });
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
     // The metadata is crucial so our webhook knows what to create when the payment succeeds
     const session = await stripe.checkout.sessions.create({

@@ -230,7 +230,13 @@ export default async function DashboardPage() {
                 </div>
               </div>
             ) : (
-              <form action={optIn} className="p-8 bg-background/50 rounded-2xl border border-border/50 max-w-md mx-auto shadow-sm">
+              <form action={async (formData) => {
+                "use server";
+                const res = await optIn(formData);
+                if (res?.redirectUrl) {
+                  redirect(res.redirectUrl);
+                }
+              }} className="p-8 bg-background/50 rounded-2xl border border-border/50 max-w-md mx-auto shadow-sm">
                 <h3 className="font-semibold text-xl mb-4">Ready to build?</h3>
                 
                 {(!user.skills || user.skills.length === 0) && (

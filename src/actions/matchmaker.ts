@@ -14,7 +14,7 @@ export async function runAutomatedMatching() {
   const unmatchedEntries = await prisma.draftEntry.findMany({
     where: { weekendId: WEEKEND_ID, matched: false },
     include: { user: true }
-  });
+  }) as any[];
 
   if (unmatchedEntries.length === 0) {
     return { success: true, message: "No unmatched users found.", matchesCreated: 0 };
@@ -60,7 +60,7 @@ export async function runAutomatedMatching() {
       }
 
       const p2 = pool.splice(p2Index, 1)[0];
-      const sharedAvailability = p1.availability.filter(a => p2.availability.includes(a));
+      const sharedAvailability = p1.availability.filter((a: string) => p2.availability.includes(a));
       const fallbackAvailability = sharedAvailability.length > 0 ? sharedAvailability : p1.availability;
 
       // Try to find a p3
