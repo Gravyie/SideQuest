@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import type { User } from "@prisma/client";
 
 export async function createQuest(formData: FormData) {
   const userIds = formData.getAll("userIds") as string[];
@@ -14,7 +15,10 @@ export async function createQuest(formData: FormData) {
 
   try {
     // 1. Get the community of the first user (assuming admins group by community)
-    const firstUser = await prisma.user.findUnique({ where: { id: userIds[0] } });
+    const firstUser = await prisma.user.findUnique({
+      where: { id: userIds[0] },
+    });
+
     if (!firstUser) return;
 
     // 2. Create the Quest
@@ -23,38 +27,42 @@ export async function createQuest(formData: FormData) {
         weekendId,
         community: firstUser.community,
         status: "ACTIVE",
-      }
+      },
     });
 
     // 3. Add members
-    const memberPromises = userIds.map(userId => 
-      prisma.questMember.create({
-        data: {
-          questId: quest.id,
-          userId,
-          role: "BUILDER",
-        }
-      })
+    await Promise.all(
+      userIds.map((userId) =>
+        prisma.questMember.create({
+          data: {
+            questId: quest.id,
+            userId,
+            role: "BUILDER",
+          },
+        })
+      )
     );
-    await Promise.all(memberPromises);
 
     // 4. Mark draft entries as matched
     await prisma.draftEntry.updateMany({
       where: {
         userId: { in: userIds },
-        weekendId
+        weekendId,
       },
-      data: { matched: true }
+      data: { matched: true },
     });
 
     // 5. Send Match Emails
     const { sendMatchEmail } = await import("@/lib/email");
-    const matchedUsers = await prisma.user.findMany({
-      where: { id: { in: userIds } }
+
+    const matchedUsers: User[] = await prisma.user.findMany({
+      where: {
+        id: { in: userIds },
+      },
     });
 
     for (const user of matchedUsers) {
-      const teammates = matchedUsers.filter(u => u.id !== user.id);
+      const teammates = matchedUsers.filter((u) => u.id !== user.id);
       await sendMatchEmail(user.email, user.name, teammates);
     }
 
